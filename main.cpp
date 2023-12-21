@@ -7,9 +7,9 @@ int main(const int argc, const char** argv) {
   error = dif.Ctor(argc, argv);
 
   if (error == DifError::kSuccess) {
-    error = dif.Diffirentiate();
+     error = dif.Diffirentiate();
   }
-$
+  
   if (error == DifError::kSuccess) {
     error = dif.Simplify();
   }

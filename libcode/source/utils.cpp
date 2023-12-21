@@ -1,5 +1,4 @@
 #include "../include/utils.h"
-#include <cstddef>
 
 void SwapBytes(void* a, void* b, size_t size) {
   ASSERT(a != nullptr);
@@ -95,4 +94,18 @@ double ParseNum(const char* str, size_t len) {
 
 bool IsEqual(double a, double b) {
   return abs(a - b) < kEpsilon;
+}
+
+double Log(double base, double arg) {
+  if (IsEqual(base, 1.0)
+      || IsEqual(arg, 0.0)
+      || IsEqual(base, 0.0)) {
+    return NAN;
+  }
+  if (arg < 0.0
+      || base < 0.0) {
+    return NAN;
+  }
+
+  return log(arg)/log(base);
 }

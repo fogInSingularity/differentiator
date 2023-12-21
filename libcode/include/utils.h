@@ -28,5 +28,6 @@ void FillBytes(void* dest, const void* src,
                size_t n_elem, size_t size_elem);
 double ParseNum(const char* str, size_t len);
 bool IsEqual(double a, double b);
+double Log(double base, double arg);
 
 #endif // LIB_UTILS_H_

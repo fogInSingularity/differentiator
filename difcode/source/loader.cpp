@@ -131,6 +131,27 @@ static TreeError GetLongToken(Token* token, const char** move_str, String* sourc
     *move_str = right_str;
 
     return TreeError::kSuccess;
+  } else if (strncmp(left_str, "ln", (size_t)(right_str - left_str)) == 0) {
+    token->type = TokenType::kOperatorType;
+    token->value.op = Operator::kLnFunction;
+
+    *move_str = right_str;
+
+    return TreeError::kSuccess;
+  } else if (strncmp(left_str, "sin", (size_t)(right_str - left_str)) == 0) {
+    token->type = TokenType::kOperatorType;
+    token->value.op = Operator::kSinFuntion;
+
+    *move_str = right_str;
+
+    return TreeError::kSuccess;
+  } else if (strncmp(left_str, "cos", (size_t)(right_str - left_str)) == 0) {
+    token->type = TokenType::kOperatorType;
+    token->value.op = Operator::kCosFunction;
+
+    *move_str = right_str;
+
+    return TreeError::kSuccess;
   } else {
     StringError str_error = StringError::kSuccess;
 

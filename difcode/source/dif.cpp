@@ -1,4 +1,5 @@
 #include "../include/dif.h"
+#include <sys/cdefs.h>
 
 //static-----------------------------------------------------------------------
 
@@ -8,7 +9,7 @@ static void DumpNodeTrav(TreeNode* node);
 
 //global-----------------------------------------------------------------------
 
-void ElemDtor(Elem* data) {$$$
+void ElemDtor(Elem* data) {
   ASSERT(data != nullptr);
 
   if (data->type == TypeOfElem::kVariable) {
@@ -18,7 +19,6 @@ void ElemDtor(Elem* data) {$$$
   data->type = TypeOfElem::kUninit;
 }
 
- //FIXME use in dif
 bool RehangParent(TreeNode* old_child, TreeNode* new_child) {$$$
   ASSERT(old_child != nullptr);
   ASSERT(new_child != nullptr);
@@ -31,7 +31,8 @@ bool RehangParent(TreeNode* old_child, TreeNode* new_child) {$$$
     $$( return true; )
   }
 
-  $$( return false; )// false is ok
+  // false is ok
+  $$( return false; )
 }
 
 //public-----------------------------------------------------------------------
@@ -67,16 +68,10 @@ DifError Diffirentiator::Ctor(const int argc, const char** argv) {$$$
   expression_str.Dtor();
   if (tree_error != TreeError::kSuccess) { INVALID_DIF_RET }
 
-  // expression_tree_.Traversal(DumpNodeTrav);
-  // expression_tree_.DotDump();
-
   $$( return DifError::kSuccess; )
 }
 
-void Diffirentiator::Dtor() {$$$
-  // expression_tree_.Traversal(DumpNodeTrav);
-  // expression_tree_.DotDump();
-
+void Diffirentiator::Dtor() {
   TreeError tree_error = TreeError::kSuccess;
 
   String store_str = {};
@@ -95,7 +90,7 @@ void Diffirentiator::Dtor() {$$$
   expression_tree_.Dtor(ElemDtor);
 }
 
-void Diffirentiator::ThrowError(DifError error) {$$$
+void Diffirentiator::ThrowError(DifError error) {
   switch (error) {
     case DifError::kSuccess:
       //---//
@@ -136,34 +131,28 @@ DifError Diffirentiator::Diffirentiate() {$$$
 
 DifError Diffirentiator::DifNode(TreeNode* node) {$$$
   ASSERT(node != nullptr);
-  // DumpNodeTrav(node);
-  // DumpNodeTrav(node->parent);
+
   switch (node->data.type) {
     case TypeOfElem::kConstant:
       node->data.value.num = 0;
 
       $$( return DifError::kSuccess; )
-      break;
     case TypeOfElem::kVariable:
       node->data.value.var.Dtor();
       node->data.type = TypeOfElem::kConstant;
       node->data.value.num = 1;
 
       $$( return DifError::kSuccess; )
-      break;
     case TypeOfElem::kOperator:
 
       $$( return DifNodeOperator(node); )
-      break;
     case TypeOfElem::kUninit:
 
       INVALID_DIF_RET
-      break;
     default:
       ASSERT(0 && "UNKNOWN TYPE OF NODE");
 
       INVALID_DIF_RET
-      break;
   }
 }
 
@@ -183,10 +172,9 @@ DifError Diffirentiator::DifNodeOperator(TreeNode* node) {$$$
       if (error != DifError::kSuccess) {$$( return error; )}
 
       $$( return DifError::kSuccess; )
-    case Operator::kMultiplication: {
+    case Operator::kMultiplication:
 
       $$( return DifNodeMult(node); )
-    }
     case Operator::kDivision:
 
       $$( return DifNodeDiv(node); )
@@ -199,6 +187,12 @@ DifError Diffirentiator::DifNodeOperator(TreeNode* node) {$$$
     case Operator::kLnFunction:
 
       $$( return DifNodeLn(node); )
+    case Operator::kSinFuntion:
+
+      $$( return DifNodeSin(node); )
+    case Operator::kCosFunction:
+
+      $$( return DifNodeCos(node); )
     case Operator::kUninitOperator:
 
       INVALID_DIF_RET
@@ -232,7 +226,7 @@ DifError Diffirentiator::DifNodeMult(TreeNode* node) {$$$
   dL_node->parent = l_mult_node;
   l_mult_node->l_child = dL_node;
   error = DifNode(dL_node);
-  if (error != DifError::kSuccess) {$$( return error; )}
+  if (error != DifError::kSuccess) { INVALID_DIF_RET }
 
   TreeNode* R_node = expression_tree_.CopySubTree(node->r_child, CopyElem);
   if (R_node == nullptr) { INVALID_DIF_RET }
@@ -255,13 +249,7 @@ DifError Diffirentiator::DifNodeMult(TreeNode* node) {$$$
   error = DifNode(dR_node);
   if (error != DifError::kSuccess) { INVALID_DIF_RET }
 
-  if (node->parent->l_child == node) {
-    node->parent->l_child = plus_node;
-  } else if (node->parent->r_child == node) {
-    node->parent->r_child = plus_node;
-  } else {
-    INVALID_DIF_RET
-  }
+  RehangParent(node, plus_node);
 
   expression_tree_.DtorNode(node, ElemDtor);
 
@@ -307,10 +295,6 @@ DifError Diffirentiator::DifNodeDiv(TreeNode* node) {$$$
   TreeNode* mult_l_minus_node = expression_tree_.CtorNode(minus_node, &data);
   if (mult_l_minus_node == nullptr) { INVALID_DIF_RET }
   minus_node->l_child = mult_l_minus_node;
-//Fix zone vvvvvvvvvvvvvvvvvvv
-
-  // ptr_error = CopyAndDifL(node, mult_l_minus_node);
-  // if (ptr_error == nullptr) {INVALID_DIF_RET }
 
   TreeNode* dL_node = expression_tree_.CopySubTree(node->l_child, CopyElem);
   if (dL_node == nullptr) { INVALID_DIF_RET }
@@ -318,8 +302,6 @@ DifError Diffirentiator::DifNodeDiv(TreeNode* node) {$$$
   mult_l_minus_node->l_child = dL_node;
   error = DifNode(dL_node);
   if (error != DifError::kSuccess) { INVALID_DIF_RET }
-
-//Fix zone ^^^^^^^^^^^^^^^^^
 
   TreeNode* R_mult_node = expression_tree_.CopySubTree(node->r_child, CopyElem);
   if (R_mult_node == nullptr) { INVALID_DIF_RET }
@@ -330,11 +312,6 @@ DifError Diffirentiator::DifNodeDiv(TreeNode* node) {$$$
   if (mult_r_minus_node == nullptr) { INVALID_DIF_RET }
   minus_node->r_child = mult_r_minus_node;
 
-//Fix zone vvvvvvvvvvvvvvvvvvvvvvvvvv
-
-  // ptr_error = CopyAndDifR(node, mult_r_minus_node);
-  // if (ptr_error == nullptr) { INVALID_DIF_RET }
-
   TreeNode* dR_node = expression_tree_.CopySubTree(node->r_child, CopyElem);
   if (dR_node == nullptr) { INVALID_DIF_RET }
   dR_node->parent =   mult_r_minus_node;
@@ -342,22 +319,12 @@ DifError Diffirentiator::DifNodeDiv(TreeNode* node) {$$$
   error = DifNode(dR_node);
   if (error != DifError::kSuccess) { INVALID_DIF_RET }
 
-//Fix zone ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
   TreeNode* L_mult_node = expression_tree_.CopySubTree(node->l_child, CopyElem);
   if (L_mult_node == nullptr) { INVALID_DIF_RET }
   L_mult_node->parent = mult_r_minus_node;
   mult_r_minus_node->l_child = L_mult_node;
 
-  // DumpNodeTrav(node);
-  // DumpNodeTrav(node->parent);
-  if (node->parent->l_child == node) {
-    node->parent->l_child = div_node;
-  } else if (node->parent->r_child == node) {
-    node->parent->r_child = div_node;
-  } else {
-    INVALID_DIF_RET
-  }
+  RehangParent(node, div_node);
 
   expression_tree_.DtorNode(node, ElemDtor);
 
@@ -366,7 +333,7 @@ DifError Diffirentiator::DifNodeDiv(TreeNode* node) {$$$
 
 DifError Diffirentiator::DifNodePower(TreeNode* node) {$$$
   ASSERT(node != nullptr);
-//FIXME might have bug
+
   DifError error = DifError::kSuccess;
   Elem data = {};
   data.type = TypeOfElem::kOperator;
@@ -389,7 +356,7 @@ DifError Diffirentiator::DifNodePower(TreeNode* node) {$$$
   if (R_power_node == nullptr) { INVALID_DIF_RET }
   R_power_node->parent = power_node;
   power_node->r_child = R_power_node;
-//Fix zone VVVVVVVVVVVV
+
   data.value.op = Operator::kAddition;
   TreeNode* plus_node = expression_tree_.CtorNode(main_mult_node, &data);
   if (plus_node == nullptr) { INVALID_DIF_RET }
@@ -446,13 +413,7 @@ DifError Diffirentiator::DifNodePower(TreeNode* node) {$$$
   error = DifNode(dR_node);
   if (error != DifError::kSuccess) { INVALID_DIF_RET }
 
-  if (node->parent->l_child == node) {
-    node->parent->l_child = main_mult_node;
-  } else if (node->parent->r_child == node) {
-    node->parent->r_child = main_mult_node;
-  } else {
-    INVALID_DIF_RET
-  }
+  RehangParent(node, main_mult_node);
 
   expression_tree_.DtorNode(node, ElemDtor);
 
@@ -491,13 +452,7 @@ DifError Diffirentiator::DifNodeLog(TreeNode* node) {$$$
   L_node->parent = ln_L_node;
   ln_L_node->r_child = L_node;
 
-  if (node->parent->l_child == node) {
-    node->parent->l_child = div_node;
-  } else if (node->parent->r_child == node) {
-    node->parent->r_child = div_node;
-  } else {
-    INVALID_DIF_RET
-  }
+  RehangParent(node, div_node);
 
   expression_tree_.DtorNode(node, ElemDtor);
 
@@ -530,13 +485,88 @@ DifError Diffirentiator::DifNodeLn(TreeNode* node) {$$$
   R_node->parent = div_node;
   div_node->r_child = R_node;
 
-  if (node->parent->l_child == node) {
-    node->parent->l_child = div_node;
-  } else if (node->parent->r_child == node) {
-    node->parent->r_child = div_node;
-  } else {
-    INVALID_DIF_RET
-  }
+  RehangParent(node, div_node);
+
+  expression_tree_.DtorNode(node, ElemDtor);
+
+  $$( return DifError::kSuccess; )
+}
+
+DifError Diffirentiator::DifNodeSin(TreeNode* node) {$$$
+  ASSERT(node != nullptr);
+
+  Elem data = {};
+  DifError error = DifError::kSuccess;
+
+  data.type = TypeOfElem::kOperator;
+  data.value.op = Operator::kMultiplication;
+  TreeNode* mult_node = expression_tree_.CtorNode(node->parent, &data);
+  if (mult_node == nullptr) { INVALID_DIF_RET }
+
+  data.value.op = Operator::kCosFunction;
+  TreeNode* cos_node = expression_tree_.CtorNode(mult_node, &data);
+  if (cos_node == nullptr) { INVALID_DIF_RET }
+  mult_node->l_child = cos_node;
+
+  TreeNode* R_node = expression_tree_.CopySubTree(node->r_child, CopyElem);
+  if (R_node ==  nullptr) { INVALID_DIF_RET }
+  R_node->parent = cos_node;
+  cos_node->r_child = R_node;
+
+  TreeNode* dR_node = expression_tree_.CopySubTree(node->r_child, CopyElem);
+  if (dR_node == nullptr) { INVALID_DIF_RET }
+  dR_node->parent = mult_node;
+  mult_node->r_child = dR_node;
+  error = DifNode(dR_node);
+  if (error != DifError::kSuccess) { INVALID_DIF_RET }
+
+  RehangParent(node, mult_node);
+
+  expression_tree_.DtorNode(node, ElemDtor);
+
+  $$( return DifError::kSuccess; )
+}
+
+DifError Diffirentiator::DifNodeCos(TreeNode* node) {$$$
+  ASSERT(node != nullptr);
+
+  Elem data = {};
+  DifError error = DifError::kSuccess;
+
+  data.type = TypeOfElem::kOperator;
+  data.value.op = Operator::kMultiplication;
+  TreeNode* mult_node = expression_tree_.CtorNode(node->parent, &data);
+  if (mult_node == nullptr) { INVALID_DIF_RET }
+
+  data.value.op = Operator::kSinFuntion;
+  TreeNode* sin_node = expression_tree_.CtorNode(mult_node, &data);
+  if (sin_node == nullptr) { INVALID_DIF_RET }
+  mult_node->l_child = sin_node;
+
+  TreeNode* R_node = expression_tree_.CopySubTree(node->r_child, CopyElem);
+  if (R_node ==  nullptr) { INVALID_DIF_RET }
+  R_node->parent = sin_node;
+  sin_node->r_child = R_node;
+
+  data.value.op = Operator::kMultiplication;
+  TreeNode* mult_r_node = expression_tree_.CtorNode(mult_node, &data);
+  if (mult_r_node == nullptr) { INVALID_DIF_RET }
+  mult_node->r_child = mult_r_node;
+
+  data.type = TypeOfElem::kConstant;
+  data.value.num = -1.0;
+  TreeNode* minus_one_node = expression_tree_.CtorNode(mult_r_node, &data);
+  if (minus_one_node == nullptr) { INVALID_DIF_RET }
+  mult_r_node->l_child = minus_one_node;
+
+  TreeNode* dR_node = expression_tree_.CopySubTree(node->r_child, CopyElem);
+  if (dR_node == nullptr) { INVALID_DIF_RET }
+  dR_node->parent = mult_r_node;
+  mult_r_node->r_child = dR_node;
+  error = DifNode(dR_node);
+  if (error != DifError::kSuccess) { INVALID_DIF_RET }
+
+  RehangParent(node, mult_node);
 
   expression_tree_.DtorNode(node, ElemDtor);
 
@@ -545,7 +575,7 @@ DifError Diffirentiator::DifNodeLn(TreeNode* node) {$$$
 
 //static-----------------------------------------------------------------------
 
-static void ErrorMessage(const char* msg) {$$$
+static void ErrorMessage(const char* msg) {
   ASSERT(msg != nullptr);
 
   fprintf(stderr, RED BOLD "error: " RESET "%s\n", msg);
@@ -568,6 +598,7 @@ static bool CopyElem(TreeNode* dest, TreeNode* src) {$$$
   $$( return false; )
 }
 
+__attribute__((unused))
 static void DumpNodeTrav(TreeNode* node) {
   if (node == nullptr) {return;}
   fprintf(stderr, RED BOLD);
@@ -593,4 +624,3 @@ static void DumpNodeTrav(TreeNode* node) {
   }
   fprintf(stderr, RESET);
 }
-

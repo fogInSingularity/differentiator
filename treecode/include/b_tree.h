@@ -73,7 +73,8 @@ struct BTree {
   bool IsValid(String* raw_tree);
 
   InsertCondFunc* InsertCond_;
-  FindCondFunc* FindCond_; // == 0 means that it is correct obj
+  // == 0 means that it is correct obj
+  FindCondFunc* FindCond_;
   ActionFunc* Action_;
   CopyElemFunc* CopyFunc_;
 };

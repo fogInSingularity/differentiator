@@ -1,6 +1,4 @@
 #include "../include/b_tree.h"
-#include <cstddef>
-#include <cstdio>
 
 //static-----------------------------------------------------------------------
 
@@ -340,6 +338,12 @@ static TreeError PushOperator(String* str, TreeNode* node) {
       break;
     case Operator::kLnFunction:
       str->Append("ln");
+      break;
+    case Operator::kSinFuntion:
+      str->Append("sin");
+      break;
+    case Operator::kCosFunction:
+      str->Append("cos");
       break;
     case Operator::kUninitOperator:
     default:
