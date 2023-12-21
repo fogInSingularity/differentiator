@@ -60,4 +60,6 @@ mkdot:
 	@dot dotdump.dot -Tsvg >out.svg
 
 mkpdf:
+	@./dif example out.tex
 	@pdflatex -jobname=dif -o out.tex
+
