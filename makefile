@@ -58,3 +58,6 @@ cert:
 
 mkdot:
 	@dot dotdump.dot -Tsvg >out.svg
+
+mkpdf:
+	@pdflatex -jobname=dif -o out.tex

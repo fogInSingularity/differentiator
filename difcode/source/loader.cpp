@@ -140,7 +140,7 @@ static TreeError GetLongToken(Token* token, const char** move_str, String* sourc
     return TreeError::kSuccess;
   } else if (strncmp(left_str, "sin", (size_t)(right_str - left_str)) == 0) {
     token->type = TokenType::kOperatorType;
-    token->value.op = Operator::kSinFuntion;
+    token->value.op = Operator::kSinFunction;
 
     *move_str = right_str;
 

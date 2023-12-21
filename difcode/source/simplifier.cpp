@@ -68,7 +68,7 @@ static Counter SimplifyOperator(BTree* tree, TreeNode* node) {$$$
     }
     case Operator::kLnFunction:
       $$( return SimplifyNode(tree, node->r_child); )
-    case Operator::kSinFuntion:
+    case Operator::kSinFunction:
     case Operator::kCosFunction:
       $$( return 0; )
     case Operator::kUninitOperator:
@@ -131,7 +131,7 @@ static Counter EvalNode(BTree* tree, TreeNode* node) {$$$
     case Operator::kLnFunction:
       eval_node->data.value.num = log(node->r_child->data.value.num);
       break;
-    case Operator::kSinFuntion:
+    case Operator::kSinFunction:
       eval_node->data.value.num = sin(node->r_child->data.value.num);
       break;
     case Operator::kCosFunction:

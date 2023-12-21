@@ -11,9 +11,8 @@ enum class Operator {
   kDivision       = 4,
   kPowerFunction  = 5,
   kLogFunction    = 6,
-
   kLnFunction     = 7,
-  kSinFuntion     = 8,
+  kSinFunction     = 8,
   kCosFunction     = 9,
 };
 

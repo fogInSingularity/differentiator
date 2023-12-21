@@ -187,7 +187,7 @@ DifError Diffirentiator::DifNodeOperator(TreeNode* node) {$$$
     case Operator::kLnFunction:
 
       $$( return DifNodeLn(node); )
-    case Operator::kSinFuntion:
+    case Operator::kSinFunction:
 
       $$( return DifNodeSin(node); )
     case Operator::kCosFunction:
@@ -538,7 +538,7 @@ DifError Diffirentiator::DifNodeCos(TreeNode* node) {$$$
   TreeNode* mult_node = expression_tree_.CtorNode(node->parent, &data);
   if (mult_node == nullptr) { INVALID_DIF_RET }
 
-  data.value.op = Operator::kSinFuntion;
+  data.value.op = Operator::kSinFunction;
   TreeNode* sin_node = expression_tree_.CtorNode(mult_node, &data);
   if (sin_node == nullptr) { INVALID_DIF_RET }
   mult_node->l_child = sin_node;

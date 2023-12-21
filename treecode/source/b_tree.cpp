@@ -4,9 +4,6 @@
 
 static const char* kDotName = "dotdump.dot";
 
-static TreeError PushOperator(String* str, TreeNode* node);
-static TreeError PushConst(String* str, TreeNode* node);
-
 //public-----------------------------------------------------------------------
 
 void BTree::Ctor() {
@@ -145,7 +142,19 @@ TreeError BTree::LoadToStr(String* str) {
   str_error = str->Clear();
   if (str_error != StringError::kSuccess) { return TreeError::kBadLoad; }
 
-  return LoadNodeToStr(str, root_);
+  str->Append("\\documentclass{article}\n"
+              "\\usepackage{graphicx}\n"
+              "\\title{_}\n"
+              "\\author{_}\n"
+              "\\begin{document}\n"
+              "\\[");
+
+  LoadNodeToStr(str, root_->l_child);
+
+  str->Append("\\]\n"
+              "\\end{document}\n");
+
+  return TreeError::kSuccess;
 }
 
 //private----------------------------------------------------------------------
@@ -258,37 +267,119 @@ TreeError BTree::LoadNodeToStr(String* str, TreeNode* node) {
   ASSERT(str != nullptr);
   // node can be nullptr
 
-  StringError str_error = StringError::kSuccess;
-  TreeError tree_error = TreeError::kSuccess;
-
   if (node == nullptr) {
     return TreeError::kSuccess;
   }
 
-  str_error = str->PushBack('(');
-  tree_error = LoadNodeToStr(str, node->l_child);
-
   switch (node->data.type) {
     case TypeOfElem::kConstant:
-      tree_error = PushConst(str, node);
-      if (tree_error != TreeError::kSuccess) {$$( return TreeError::kBadLoad; )}
-      break;
-    case TypeOfElem::kOperator:
-      tree_error = PushOperator(str, node);
-      if (tree_error != TreeError::kSuccess) {$$( return TreeError::kBadLoad; )}
+      PushConst(str, node);
       break;
     case TypeOfElem::kVariable:
-      str_error = str->Append(&node->data.value.var);
-      if (str_error != StringError::kSuccess) {$$( return TreeError::kBadLoad; )}
+      str->PushBack(' ');
+      str->Append(&node->data.value.var);
+      str->PushBack(' ');
+      break;
+    case TypeOfElem::kOperator:
+      PushOperator(str, node);
       break;
     case TypeOfElem::kUninit:
       break;
     default:
-      $$( return TreeError::kBadLoad; )
+      ASSERT(0 && "UNKNOWN TYPE");
+      break;
   }
 
-  tree_error = LoadNodeToStr(str, node->r_child);
-  str_error = str->PushBack(')');
+  return TreeError::kSuccess;
+}
+
+TreeError BTree::PushOperator(String* str, TreeNode* node) {
+  ASSERT(str != nullptr);
+  ASSERT(node != nullptr);
+
+  if (node->data.type != TypeOfElem::kOperator) {$$( return TreeError::kBadLoad; )}
+
+  switch (node->data.value.op) {
+    case Operator::kAddition:
+      str->Append("{");
+      LoadNodeToStr(str, node->l_child);
+      str->Append("}+{");
+      LoadNodeToStr(str, node->r_child);
+      str->Append("}");
+      break;
+    case Operator::kSubtraction:
+      str->Append("{");
+      LoadNodeToStr(str, node->l_child);
+      str->Append("}-{");
+      LoadNodeToStr(str, node->r_child);
+      str->Append("}");
+      break;
+    case Operator::kMultiplication:
+      str->Append("{");
+      LoadNodeToStr(str, node->l_child);
+      str->Append("}{");
+      LoadNodeToStr(str, node->r_child);
+      str->Append("}");
+      break;
+    case Operator::kDivision://FIXME
+      str->Append("\\frac{");
+      LoadNodeToStr(str, node->l_child);
+      str->Append("}{");
+      LoadNodeToStr(str, node->r_child);
+      str->Append("}");
+      break;
+    case Operator::kPowerFunction:
+      str->Append("{");
+      LoadNodeToStr(str, node->l_child);
+      str->Append("}^{");
+      LoadNodeToStr(str, node->r_child);
+      str->Append("}");
+      break;
+    case Operator::kLogFunction: //FIXME
+      str->Append("\\log_{");
+      LoadNodeToStr(str, node->l_child);
+      str->Append("} {(");
+      LoadNodeToStr(str, node->r_child);
+      str->Append(")} ");
+      break;
+    case Operator::kLnFunction: //FIXME
+      str->Append("\\ln {(");
+      LoadNodeToStr(str, node->r_child);
+      str->Append(")} ");
+      break;
+    case Operator::kSinFunction: //FIXME
+      str->Append("\\sin {(");
+      LoadNodeToStr(str, node->r_child);
+      str->Append(")} ");
+      break;
+    case Operator::kCosFunction: //FIXME
+      str->Append("\\cos {(");
+      LoadNodeToStr(str, node->r_child);
+      str->Append(")} ");
+      break;
+    case Operator::kUninitOperator:
+      break;
+    default:
+      ASSERT(0 && "UNKNOWN OPERATOR");
+      break;
+  }
+
+  return TreeError::kSuccess;
+}
+
+TreeError BTree::PushConst(String* str, TreeNode* node) {
+  ASSERT(str != nullptr);
+  ASSERT(node != nullptr);
+
+  if (node->data.type != TypeOfElem::kConstant) {$$( return TreeError::kBadLoad; )}
+
+  char tmp[100] = "";
+  if (IsEqual(node->data.value.num, round(node->data.value.num))) {
+    sprintf(tmp, " %d ", (int)node->data.value.num);
+  } else {
+    sprintf(tmp, " %.4lf ", node->data.value.num);
+  }
+  str->Append(tmp);
 
   return TreeError::kSuccess;
 }
@@ -310,59 +401,3 @@ bool BTree::IsValid(String* raw_tree) {//REVIEW mb valid func?
 }
 
 //static-----------------------------------------------------------------------
-
-static TreeError PushOperator(String* str, TreeNode* node) {
-  ASSERT(str != nullptr);
-  ASSERT(node != nullptr);
-
-  if (node->data.type != TypeOfElem::kOperator) {$$( return TreeError::kBadLoad; )}
-
-  switch (node->data.value.op) {
-    case Operator::kAddition:
-      str->PushBack('+');
-      break;
-    case Operator::kSubtraction:
-      str->PushBack('-');
-      break;
-    case Operator::kMultiplication:
-      str->PushBack('*');
-      break;
-    case Operator::kDivision:
-      str->PushBack('/');
-      break;
-    case Operator::kPowerFunction:
-      str->PushBack('^');
-      break;
-    case Operator::kLogFunction:
-      str->Append("log");
-      break;
-    case Operator::kLnFunction:
-      str->Append("ln");
-      break;
-    case Operator::kSinFuntion:
-      str->Append("sin");
-      break;
-    case Operator::kCosFunction:
-      str->Append("cos");
-      break;
-    case Operator::kUninitOperator:
-    default:
-      return TreeError::kBadLoad;
-  }
-
-  return TreeError::kSuccess;
-}
-
-
-static TreeError PushConst(String* str, TreeNode* node) {
-  ASSERT(str != nullptr);
-  ASSERT(node != nullptr);
-
-  if (node->data.type != TypeOfElem::kConstant) {$$( return TreeError::kBadLoad; )}
-
-  char tmp[100] = "";
-  sprintf(tmp, "%lf", node->data.value.num);
-  str->Append(tmp);
-
-  return TreeError::kSuccess;
-}

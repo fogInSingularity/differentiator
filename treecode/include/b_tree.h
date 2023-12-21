@@ -69,7 +69,9 @@ struct BTree {
   TreeNode* CopySubTreeNode(TreeNode* src_node);
 
   TreeError LoadNodeToStr(String* str, TreeNode* node);
-  StringError PushNodeToStr(String* str, TreeNode* node);
+  // StringError PushNodeToStr(String* str, TreeNode* node);
+  TreeError PushOperator(String* str, TreeNode* node);
+  TreeError PushConst(String* str, TreeNode* node);
   bool IsValid(String* raw_tree);
 
   InsertCondFunc* InsertCond_;
