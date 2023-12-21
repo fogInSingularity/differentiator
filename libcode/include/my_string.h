@@ -13,6 +13,7 @@
 #include "my_typedefs.h"
 #include "recalloc.h"
 #include "utils.h"
+#include "debug.h"
 
 //lib_config-----------------------------------------------------------------------
 

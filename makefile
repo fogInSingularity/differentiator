@@ -5,6 +5,7 @@ SOURCES = libcode/source/* treecode/source/* difcode/source/*
 
 EXE = dif
 EXE_RELEASE = dif_rel
+EXE_REL_CLANG = dif_clang
 
 FLAGS_GCC = -fdiagnostics-generate-patch -fdiagnostics-path-format=inline-events\
 -Og -ggdb -std=c++20 -Wall -Wextra -Weffc++ -Waggressive-loop-optimizations   \
@@ -27,16 +28,16 @@ float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,$\
 object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,$\
 undefined,unreachable,vla-bound,vptr
 
-FLAGS_CLANG =
+# FLAGS_CLANG =
 
 all:
 	@$(CC) main.cpp $(SOURCES) $(FLAGS_GCC) -o $(EXE)
 
 clang:
-	@clang++ main.cpp $(SOURCES) -Wall -Wextra -o $(EXE)
+	@clang++ main.cpp $(SOURCES) -Wall -Wextra -O3 -s -march=native -std=c++20 -o $(EXE_REL_CLANG)
 
 release:
-	@$(CC) main.cpp $(SOURCES) -O3 -s -march=native -std=c++23 -o $(EXE_RELEASE)
+	@$(CC) main.cpp $(SOURCES) -Wall -Wextra -O3 -s -march=native -std=c++20 -o $(EXE_RELEASE)
 
 analyze:
 	@clang-tidy $(SOURCES) -checks=clang-analyzer-*
@@ -47,7 +48,7 @@ performance:
 portability:
 	@clang-tidy $(SOURCES) -checks=portability-*
 
-READ_FLAGS = readability-magic-numbers,readability-identifier-length,readability-implicit-bool-conversion,readability-convert-member-functions-to-static
+# READ_FLAGS = readability-magic-numbers,readability-identifier-length,readability-implicit-bool-conversion,readability-convert-member-functions-to-static
 
 readablility:
 	@clang-tidy $(SOURCES) -checks=readability-$(READ_FLAGS)

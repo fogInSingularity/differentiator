@@ -58,7 +58,7 @@ struct BTree {
   TreeNode* CopySubTree(TreeNode* node, CopyElemFunc CopyFunc);
   bool IsRoot(const TreeNode* node);
 
-  TreeError LoadToStr(String* str);
+  TreeError LoadToStr(String* source);
   TreeError LoadFromStr(String* str);
  private: //-------------------------------------------------------------------
   void NodeDotDump(FILE* file, TreeNode* node);
@@ -70,9 +70,6 @@ struct BTree {
 
   TreeError LoadNodeToStr(String* str, TreeNode* node);
   StringError PushNodeToStr(String* str, TreeNode* node);
-  TreeNode* LoadNodeFromStr(const char* str,
-                            Counter* shift,
-                            TreeNode* parent);
   bool IsValid(String* raw_tree);
 
   InsertCondFunc* InsertCond_;

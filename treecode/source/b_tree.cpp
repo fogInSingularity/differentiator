@@ -1,11 +1,13 @@
 #include "../include/b_tree.h"
+#include <cstddef>
+#include <cstdio>
 
 //static-----------------------------------------------------------------------
 
-const char* kDotName = "dotdump.dot";
+static const char* kDotName = "dotdump.dot";
 
-static const char* SkipSpaces(const char* move);
-static Counter SkippedAlpAndNums(const char* str);
+static TreeError PushOperator(String* str, TreeNode* node);
+static TreeError PushConst(String* str, TreeNode* node);
 
 //public-----------------------------------------------------------------------
 
@@ -62,7 +64,9 @@ void BTree::DtorNode(TreeNode* node, ElemDtorFunc* ElemDtor) {
   if (node == nullptr) { return; }
 
   DtorNode(node->l_child, ElemDtor);
+  node->l_child = nullptr;
   DtorNode(node->r_child, ElemDtor);
+  node->r_child = nullptr;
 
   ElemDtor(&node->data);
   free(node);
@@ -136,8 +140,7 @@ bool BTree::IsRoot(const TreeNode* node) {
   return (node == root_);
 }
 
-
-TreeError BTree::LoadToStr(String* str) {//REVIEW
+TreeError BTree::LoadToStr(String* str) {
   ASSERT(str != nullptr);
 
   StringError str_error = StringError::kSuccess;
@@ -147,22 +150,7 @@ TreeError BTree::LoadToStr(String* str) {//REVIEW
   return LoadNodeToStr(str, root_);
 }
 
-TreeError BTree::LoadFromStr(String* str) {//REVIEW
-  ASSERT(str != nullptr)
-
-  if (!IsValid(str)) { return TreeError::kInvalidTree; }
-
-  if (root_ != nullptr) { return TreeError::kInvalidTree; }
-
-  Counter shift = 0;
-  root_ = LoadNodeFromStr(str->Data(), &shift, nullptr);
-  if (root_ == nullptr) { return TreeError::kInvalidTree; }
-
-  return TreeError::kSuccess;
-}
-
 //private----------------------------------------------------------------------
-
 
 void BTree::NodeDotDump(FILE* file, TreeNode* node) { //FIXME dump func
   ASSERT(file != nullptr);
@@ -268,190 +256,109 @@ TreeNode* BTree::CopySubTreeNode(TreeNode* src_node) {
   return copy_node;
 }
 
-TreeError BTree::LoadNodeToStr(String* str, TreeNode* node) {//REVIEW
+TreeError BTree::LoadNodeToStr(String* str, TreeNode* node) {
   ASSERT(str != nullptr);
   // node can be nullptr
 
-  // StringError str_error = StringError::kSuccess;
-  // TreeError tree_error = TreeError::kSuccess;
+  StringError str_error = StringError::kSuccess;
+  TreeError tree_error = TreeError::kSuccess;
 
-  // if (node != nullptr) {
-  //   str_error = PushNodeToStr(str, node);
-  //   if (str_error != StringError::kSuccess) { return TreeError::kStringError; }
+  if (node == nullptr) {
+    return TreeError::kSuccess;
+  }
 
-  //   tree_error = LoadNodeToStr(str, node->l_child);
-  //   if (tree_error != TreeError::kSuccess) { return tree_error; }
-  //   tree_error = LoadNodeToStr(str, node->r_child);
-  //   if (tree_error != TreeError::kSuccess) { return tree_error; }
+  str_error = str->PushBack('(');
+  tree_error = LoadNodeToStr(str, node->l_child);
 
-  //   str_error = str->PushBack(')');
-  //   if (str_error != StringError::kSuccess) { return TreeError::kStringError; }
-  // } else {
-  //   str_error = str->PushBack('_');
-  //   if (str_error != StringError::kSuccess) { return TreeError::kStringError; }
-  // }
+  switch (node->data.type) {
+    case TypeOfElem::kConstant:
+      tree_error = PushConst(str, node);
+      if (tree_error != TreeError::kSuccess) {$$( return TreeError::kBadLoad; )}
+      break;
+    case TypeOfElem::kOperator:
+      tree_error = PushOperator(str, node);
+      if (tree_error != TreeError::kSuccess) {$$( return TreeError::kBadLoad; )}
+      break;
+    case TypeOfElem::kVariable:
+      str_error = str->Append(&node->data.value.var);
+      if (str_error != StringError::kSuccess) {$$( return TreeError::kBadLoad; )}
+      break;
+    case TypeOfElem::kUninit:
+      break;
+    default:
+      $$( return TreeError::kBadLoad; )
+  }
 
-  USE_VAR(node)
+  tree_error = LoadNodeToStr(str, node->r_child);
+  str_error = str->PushBack(')');
 
   return TreeError::kSuccess;
-}
-
-StringError BTree::PushNodeToStr(String* str, TreeNode* node) {//REVIEW
-  ASSERT(str != nullptr);
-  ASSERT(node != nullptr);
-
-  // StringError str_error = StringError::kSuccess;
-
-  // str_error = str->Reserve(node->data.str.Length() + 4);
-  // if (str_error != StringError::kSuccess) { return str_error; }
-
-  // str_error = str->PushBack('(');
-  // if (str_error != StringError::kSuccess) { return str_error; }
-
-  // str_error = str->PushBack('\"');
-  // if (str_error != StringError::kSuccess) { return str_error; }
-
-  // str_error = str->Append(node->data.str.Data());
-  // if (str_error != StringError::kSuccess) { return str_error; }
-
-  // str_error = str->PushBack('\"');
-  // if (str_error != StringError::kSuccess) { return str_error; }
-
-  return StringError::kSuccess;
-}
-
-TreeNode* BTree::LoadNodeFromStr(const char* str,
-                                 Counter* shift,
-                                 TreeNode* parent) {//REVIEW
-  ASSERT(str != nullptr);
-  ASSERT(shift != nullptr);
-  // parent can be nullptr
-
-  // (*shift)++;
-
-  // TreeNode* new_node = {};
-  // Elem data = {};
-
-  // if (*(str + *shift) == '_') {
-  //   (*shift)++;
-
-  //   size_t num_len = SkippedAlpAndNums(str);
-  //   double var = ParseNum(str + *shift, num_len);
-  //   if (isnan(var)) {
-  //     data.type = TypeOfElem::kVariable;
-  //     data.value.value = var;
-  //   } else {
-  //     data.type = TypeOfElem::kConstant;
-
-  //   }
-
-  //   *shift += num_len + 1;
-  //   if (*(str + *shift) != '_') { return nullptr; }
-
-  //   return nullptr; //FIXME
-  // }
-
-  // new_node = CtorNode(parent, &data);
-  // if (new_node == nullptr) { return nullptr; }
-
-  // new_node->l_child = LoadNodeFromStr(str, shift, new_node);
-  // if (new_node->l_child == nullptr) {
-  //   DtorNode(new_node);
-  //   return nullptr;
-  // }
-
-  // //data setup and move shift
-
-  // new_node->r_child = LoadNodeFromStr(str, shift, new_node);
-  // if (new_node->r_child == nullptr) {
-  //   DtorNode(new_node);
-  //   return nullptr;
-  // }
-
-  // return new_node;
-
-  //FIXME ^
-
-  // const char* left_quat = strchr(str + *shift, '\"');
-  // const char* right_quat = strchr(left_quat + 1, '\"');
-  // *shift += right_quat - (str + *shift) + 1;
-
-  // Elem data = {};
-  // // data.str.Ctor((size_t)(right_quat - left_quat - 1), left_quat + 1);
-
-  // TreeNode* new_node = {};
-  // if (*(str + *shift) == '_') {
-  //   data.type = TypeOfElem::kObject;
-  //   new_node = CtorNode(parent, &data);
-  //   *shift += 3;
-  //   return new_node;
-  // } else {
-  //   data.type = TypeOfElem::kProperty;
-  //   new_node = CtorNode(parent, &data);
-  //   if (new_node == nullptr) { return nullptr; }
-
-  //   new_node->l_child = LoadNodeFromStr(str, shift, new_node);
-  //   if (new_node->l_child == nullptr) {
-  //     DtorNode(new_node);
-  //     return nullptr;
-  //   }
-
-  //   new_node->r_child = LoadNodeFromStr(str, shift, new_node);
-  //   if (new_node->r_child == nullptr) {
-  //     DtorNode(new_node);
-  //     return nullptr;
-  //   }
-  // }
-
-  // return new_node;
-  USE_VAR(parent);
-
-  return nullptr;
 }
 
 bool BTree::IsValid(String* raw_tree) {//REVIEW mb valid func?
   ASSERT(raw_tree != nullptr);
 
   Counter brackets = 0;
-  Counter quat     = 0;
-  Counter star     = 0;
-
-  Counter error    = 0;
 
   const char* str = raw_tree->Data();
-  while (*str != '\0') {
+  while (str < raw_tree->Data() + raw_tree->Size()) {
     brackets += (*str == '(') - (*str == ')');
-    quat     += (*str == '\"');
-    star     += (*str == '_');
-
-    error    += (*str == ')') * (quat % 2);
+    if (brackets < 0) { return false; }
 
     str++;
   }
 
-  return !brackets && (quat % 2 == 0) && (star % 2 == 0) && !error;
+  return true;
 }
 
 //static-----------------------------------------------------------------------
 
-__attribute__((__unused__))
-static const char* SkipSpaces(const char* move) {
-  ASSERT(move != nullptr);
-
-  while (isspace(*move)) { move++; }
-
-  return move;
-}
-
-__attribute__((__unused__))
-static Counter SkippedAlpAndNums(const char* str) {
+static TreeError PushOperator(String* str, TreeNode* node) {
   ASSERT(str != nullptr);
+  ASSERT(node != nullptr);
 
-  const char* move_str = str;
+  if (node->data.type != TypeOfElem::kOperator) {$$( return TreeError::kBadLoad; )}
 
-  while((isalpha(*move_str) || isdigit(*move_str)) && (*move_str != '\0')) {
-    move_str++;
+  switch (node->data.value.op) {
+    case Operator::kAddition:
+      str->PushBack('+');
+      break;
+    case Operator::kSubtraction:
+      str->PushBack('-');
+      break;
+    case Operator::kMultiplication:
+      str->PushBack('*');
+      break;
+    case Operator::kDivision:
+      str->PushBack('/');
+      break;
+    case Operator::kPowerFunction:
+      str->PushBack('^');
+      break;
+    case Operator::kLogFunction:
+      str->Append("log");
+      break;
+    case Operator::kLnFunction:
+      str->Append("ln");
+      break;
+    case Operator::kUninitOperator:
+    default:
+      return TreeError::kBadLoad;
   }
 
-  return move_str - str;
+  return TreeError::kSuccess;
+}
+
+
+static TreeError PushConst(String* str, TreeNode* node) {
+  ASSERT(str != nullptr);
+  ASSERT(node != nullptr);
+
+  if (node->data.type != TypeOfElem::kConstant) {$$( return TreeError::kBadLoad; )}
+
+  char tmp[100] = "";
+  sprintf(tmp, "%lf", node->data.value.num);
+  str->Append(tmp);
+
+  return TreeError::kSuccess;
 }

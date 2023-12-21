@@ -10,13 +10,12 @@ enum class Operator {
   kMultiplication = 3,
   kDivision       = 4,
   kPowerFunction  = 5,
-  // logarithm?
-  // trig funtions?
+  kLogFunction    = 6,
+  kLnFunction     = 7,
 };
 
-typedef int Operand;
-
-typedef String Variable; //REVIEW
+typedef double Operand;
+typedef String Variable;
 
 union Value {
   Operator op;

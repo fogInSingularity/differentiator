@@ -22,11 +22,11 @@
 #define USE_VAR(var) (void)var;
 
 static const double kEpsilon = 0.00000001;
-#define IS_EQUAL(a, b) (abs(a - b) < kEpsilon)
 
 void SwapBytes(void* a, void* b, size_t size);
 void FillBytes(void* dest, const void* src,
                size_t n_elem, size_t size_elem);
 double ParseNum(const char* str, size_t len);
+bool IsEqual(double a, double b);
 
 #endif // LIB_UTILS_H_

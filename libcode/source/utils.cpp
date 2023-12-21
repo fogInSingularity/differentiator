@@ -92,3 +92,7 @@ double ParseNum(const char* str, size_t len) {
     return atof(str);
   }
 }
+
+bool IsEqual(double a, double b) {
+  return abs(a - b) < kEpsilon;
+}
