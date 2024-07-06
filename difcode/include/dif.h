@@ -34,12 +34,16 @@ struct Diffirentiator {
   DifError DifNodeMult(TreeNode* node);
   DifError DifNodeDiv(TreeNode* node);
   DifError DifNodePower(TreeNode* node);
+  DifError DifNodePowerGeneral(TreeNode* node);
+  DifError DifNodePowerCnstBase(TreeNode* node);
+  DifError DifNodePowerCnstPower(TreeNode* node);
   DifError DifNodeLog(TreeNode* node);
   DifError DifNodeLn(TreeNode* node);
   DifError DifNodeSin(TreeNode* node);
   DifError DifNodeCos(TreeNode* node);
 
   BTree expression_tree_;
+  BTree source_tree;
   const char* out_file_name_;
 };
 

@@ -138,21 +138,7 @@ bool BTree::IsRoot(const TreeNode* node) {
 TreeError BTree::LoadToStr(String* str) {
   ASSERT(str != nullptr);
 
-  StringError str_error = StringError::kSuccess;
-  str_error = str->Clear();
-  if (str_error != StringError::kSuccess) { return TreeError::kBadLoad; }
-
-  str->Append("\\documentclass{article}\n"
-              "\\usepackage{graphicx}\n"
-              "\\title{_}\n"
-              "\\author{_}\n"
-              "\\begin{document}\n"
-              "\\[");
-
   LoadNodeToStr(str, root_->l_child);
-
-  str->Append("\\]\n"
-              "\\end{document}\n");
 
   return TreeError::kSuccess;
 }
@@ -317,7 +303,7 @@ TreeError BTree::PushOperator(String* str, TreeNode* node) {
     case Operator::kMultiplication:
       str->Append("{");
       LoadNodeToStr(str, node->l_child);
-      str->Append("}{");
+      str->Append("}\\cdot{");
       LoadNodeToStr(str, node->r_child);
       str->Append("}");
       break;

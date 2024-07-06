@@ -1,11 +1,14 @@
 #include "../include/dif.h"
+#include <csetjmp>
 #include <sys/cdefs.h>
+#include <sys/types.h>
 
 //static-----------------------------------------------------------------------
 
 static void ErrorMessage(const char* msg);
 static bool CopyElem(TreeNode* dest, TreeNode* src);
 static void DumpNodeTrav(TreeNode* node);
+static bool HasVarInSubTree(TreeNode* node);
 
 //global-----------------------------------------------------------------------
 
@@ -68,17 +71,35 @@ DifError Diffirentiator::Ctor(const int argc, const char** argv) {$$$
   expression_str.Dtor();
   if (tree_error != TreeError::kSuccess) { INVALID_DIF_RET }
 
+  source_tree.Ctor();
+  source_tree.root_ = expression_tree_.CopySubTree(expression_tree_.root_, CopyElem);
+
   $$( return DifError::kSuccess; )
 }
 
 void Diffirentiator::Dtor() {
   TreeError tree_error = TreeError::kSuccess;
+  StringError str_error = StringError::kSuccess;
 
   String store_str = {};
   store_str.Ctor();
 
+  store_str.Append("\\documentclass{article}\n"
+              "\\usepackage{graphicx}\n"
+              "\\title{_}\n"
+              "\\author{_}\n"
+              "\\begin{document}\n"
+              "\\[\\left(");
+  tree_error = source_tree.LoadToStr(&store_str);
+  if (tree_error != TreeError::kSuccess) { $ }
+
+  store_str.Append("\\right)' = ");
+
   tree_error = expression_tree_.LoadToStr(&store_str);
   if (tree_error != TreeError::kSuccess) { $ }
+
+  store_str.Append("\\]\n"
+              "\\end{document}\n");
 
   FILE* out_file = fopen(out_file_name_, "w");
   if (out_file == nullptr) { $ }
@@ -88,6 +109,7 @@ void Diffirentiator::Dtor() {
 
   out_file_name_ = nullptr;
   expression_tree_.Dtor(ElemDtor);
+  source_tree.Dtor(ElemDtor);
 }
 
 void Diffirentiator::ThrowError(DifError error) {
@@ -334,6 +356,33 @@ DifError Diffirentiator::DifNodeDiv(TreeNode* node) {$$$
 DifError Diffirentiator::DifNodePower(TreeNode* node) {$$$
   ASSERT(node != nullptr);
 
+  bool has_var_l = HasVarInSubTree(node->l_child);
+  bool has_var_r = HasVarInSubTree(node->r_child);
+
+  if (has_var_l && has_var_r) {
+    $$( return DifNodePowerGeneral(node); )
+  } else if (has_var_l) {
+    $$( return DifNodePowerCnstBase(node); )
+  } else if (has_var_r) {
+    $$( return DifNodePowerCnstPower(node); )
+  } else {
+    Elem data = {};
+    data.type = TypeOfElem::kConstant;
+    data.value.num = 0.0;
+    TreeNode* zero_node = expression_tree_.CtorNode(node->parent, &data);
+    if (zero_node == nullptr) { INVALID_DIF_RET }
+
+    RehangParent(node, zero_node);
+
+    expression_tree_.DtorNode(node, ElemDtor);
+
+    $$( return DifError::kSuccess )
+  }
+}
+
+DifError Diffirentiator::DifNodePowerGeneral(TreeNode* node) {$$$
+  ASSERT(node != nullptr);
+
   DifError error = DifError::kSuccess;
   Elem data = {};
   data.type = TypeOfElem::kOperator;
@@ -416,6 +465,127 @@ DifError Diffirentiator::DifNodePower(TreeNode* node) {$$$
   RehangParent(node, main_mult_node);
 
   expression_tree_.DtorNode(node, ElemDtor);
+
+  $$( return DifError::kSuccess; )
+}
+
+DifError Diffirentiator::DifNodePowerCnstPower(TreeNode* node) {
+  ASSERT(node != nullptr);
+
+  DifError error = DifError::kSuccess;
+
+  Elem data = {};
+
+  data.type = TypeOfElem::kOperator;
+
+  data.value.op = Operator::kMultiplication;
+  TreeNode* main_mult_node = expression_tree_.CtorNode(node->parent, &data);
+  if (main_mult_node == nullptr) { INVALID_DIF_RET }
+
+  data.value.op = Operator::kPowerFunction;
+  TreeNode* pow_node = expression_tree_.CtorNode(main_mult_node, &data);
+  if (pow_node == nullptr) { INVALID_DIF_RET }
+  main_mult_node->l_child = pow_node;
+
+  TreeNode* L_pow_node = expression_tree_.CopySubTree(node->l_child, CopyElem);
+  if (L_pow_node == nullptr) { INVALID_DIF_RET }
+  L_pow_node->parent = pow_node;
+  pow_node->l_child = L_pow_node;
+
+  TreeNode* R_pow_node = expression_tree_.CopySubTree(node->r_child, CopyElem);
+  if (R_pow_node == nullptr) { INVALID_DIF_RET }
+  R_pow_node->parent = pow_node;
+  pow_node->r_child = R_pow_node;
+
+  data.value.op = Operator::kMultiplication;
+  TreeNode* mult_node = expression_tree_.CtorNode(main_mult_node, &data);
+  if (mult_node == nullptr) { INVALID_DIF_RET }
+  main_mult_node->r_child = mult_node;
+
+  data.value.op = Operator::kLnFunction;
+  TreeNode* ln_node = expression_tree_.CtorNode(mult_node, &data);
+  if (ln_node == nullptr) { INVALID_DIF_RET }
+  mult_node->l_child = ln_node;
+
+  TreeNode* R_mult_node = expression_tree_.CopySubTree(node->r_child, CopyElem);
+  if (R_mult_node == nullptr) { INVALID_DIF_RET }
+  R_mult_node->parent = ln_node;
+  ln_node->r_child = R_mult_node;
+
+  TreeNode* dR_node = expression_tree_.CopySubTree(node->r_child, CopyElem);
+  if (dR_node == nullptr) { INVALID_DIF_RET }
+  dR_node->parent = mult_node;
+  mult_node->r_child = dR_node;
+  error = DifNode(dR_node);
+  if (error != DifError::kSuccess) { INVALID_DIF_RET }
+
+  RehangParent(node, main_mult_node);
+
+  expression_tree_.DtorNode(node, ElemDtor);
+
+  $$( return DifError::kSuccess; )
+}
+
+DifError Diffirentiator::DifNodePowerCnstBase(TreeNode* node) {
+  ASSERT(node != nullptr);
+
+  DifError error = DifError::kSuccess;
+
+  Elem data = {};
+
+  data.type = TypeOfElem::kOperator;
+
+  data.value.op = Operator::kMultiplication;
+  TreeNode* main_mult_node = expression_tree_.CtorNode(node->parent, &data);
+  if (main_mult_node == nullptr) { INVALID_DIF_RET }
+
+  data.value.op = Operator::kPowerFunction;
+  TreeNode* pow_node = expression_tree_.CtorNode(main_mult_node, &data);
+  if (pow_node == nullptr) { INVALID_DIF_RET }
+  main_mult_node->l_child = pow_node;
+
+  TreeNode* L_pow_node = expression_tree_.CopySubTree(node->l_child, CopyElem);
+  if (L_pow_node == nullptr) { INVALID_DIF_RET }
+  L_pow_node->parent = pow_node;
+  pow_node->l_child = L_pow_node;
+
+  data.value.op = Operator::kSubtraction;
+  TreeNode* sub_node = expression_tree_.CtorNode(pow_node, &data);
+  if (sub_node == nullptr) { INVALID_DIF_RET }
+  pow_node->r_child = sub_node;
+
+  TreeNode* R_sub_node = expression_tree_.CopySubTree(node->r_child, CopyElem);
+  if (R_sub_node == nullptr) { INVALID_DIF_RET }
+  R_sub_node->parent = sub_node;
+  sub_node->l_child = R_sub_node;
+
+  data.type = TypeOfElem::kConstant;
+  data.value.num = 1.0;
+  TreeNode* minus_one_node = expression_tree_.CtorNode(sub_node, &data);
+  if (minus_one_node == nullptr) { INVALID_DIF_RET }
+  sub_node->r_child = minus_one_node;
+
+  data.type = TypeOfElem::kOperator;
+  data.value.op = Operator::kMultiplication;
+  TreeNode* mult_node = expression_tree_.CtorNode(main_mult_node, &data);
+  if (mult_node == nullptr) { INVALID_DIF_RET }
+  main_mult_node->r_child = mult_node;
+
+  TreeNode* R_mult_node = expression_tree_.CopySubTree(node->r_child, CopyElem);
+  if (R_mult_node == nullptr) { INVALID_DIF_RET }
+  R_mult_node->parent = mult_node;
+  mult_node->l_child = R_mult_node;
+
+  TreeNode* dL_mult_node = expression_tree_.CopySubTree(node->l_child, CopyElem);
+  if (dL_mult_node == nullptr) { INVALID_DIF_RET }
+  dL_mult_node->parent = mult_node;
+  mult_node->r_child = dL_mult_node;
+  error = DifNode(dL_mult_node);
+  if (error != DifError::kSuccess) { INVALID_DIF_RET }
+
+  RehangParent(node, main_mult_node);
+
+    expression_tree_.DtorNode(node, ElemDtor);
 
   $$( return DifError::kSuccess; )
 }
@@ -623,4 +793,16 @@ static void DumpNodeTrav(TreeNode* node) {
       break;
   }
   fprintf(stderr, RESET);
+}
+
+static bool HasVarInSubTree(TreeNode* node) {
+  if (node == nullptr) { return false; }
+  if (node->data.type == TypeOfElem::kConstant) {
+    return false;
+  }
+  if (node->data.type == TypeOfElem::kVariable) {
+    return true;
+  }
+
+  return HasVarInSubTree(node->l_child) || HasVarInSubTree(node->r_child);
 }

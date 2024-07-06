@@ -29,6 +29,8 @@ TreeError BTree::LoadFromStr(String* source) {
   while (move_str < source->Data() + source->Size()) {
     token = {};
 
+    move_str = SkipSpaces(move_str);
+
     error = GetToken(&token, &move_str, source);
     if (error != TreeError::kSuccess) { return TreeError::kBadLoad; }
 
@@ -114,7 +116,7 @@ static TreeError GetLongToken(Token* token, const char** move_str, String* sourc
   ASSERT(source != nullptr);
 
   const char* left_str = *move_str;
-  const char* right_str = strchrs(*move_str, "()");
+  const char* right_str = strchrs(*move_str, "()\n ");
 
   double num = ParseNum(left_str, right_str);
   if (!isnan(num)) {

@@ -9,7 +9,7 @@
 
 #ifdef DEBUG_ON
 #define PRINT_BYTE(n)    (void)fprintf(stderr, ">>> %x <<<\n", n);
-#define PRINT_INT(n)     (void)fprintf(stderr, ">>> %d <<<\n", n);
+#define PRINT_INT(n)     (void)fprintf(stderr, ">>> %d %s <<<\n", n, #n);
 #define PRINT_UINT(n)    (void)fprintf(stderr, ">>> %u <<<\n", n);
 #define PRINT_LONG(n)    (void)fprintf(stderr, ">>> %ld <<<\n", n);
 #define PRINT_ULONG(n)   (void)fprintf(stderr, ">>> %lu <<<\n", n);
